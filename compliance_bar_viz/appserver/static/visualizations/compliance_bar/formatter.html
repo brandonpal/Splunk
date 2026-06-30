@@ -1,20 +1,315 @@
-<div data-role="panel" class="compliance-bar-formatter">
-    <p style="padding: 10px; font-size: 12px; color: #999; line-height: 1.5;">
-        This visualization reads these fields from your search results (one row per panel):
-        <br/><br/>
-        <strong>metricValue</strong> — compliance % (0–100), drives the bar width and "(P%)" text.
-        <br/>
-        <strong>threshold</strong> — <code>red</code>, <code>yellow</code>, or <code>green</code>. Drives the bar and pill color.
-        <br/>
-        <strong>compliant</strong> — compliant asset count, shown as the first number in "N of M".
-        <br/>
-        <strong>noncompliant</strong> — non-compliant asset count. Combined with <code>compliant</code> to get the "of M" total.
-        <br/><br/>
-        Row labels (e.g. "BBC (On-Prem)") are not pulled from the data — set them via the panel title,
-        since each platform/row is its own panel using this same visualization.
-        <br/><br/>
-        Example search:
-        <br/>
-        <code>| stats latest(metricValue) as metricValue latest(threshold) as threshold latest(compliant) as compliant latest(noncompliant) as noncompliant</code>
-    </p>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 12px;
+    color: #333;
+    background: #fff;
+}
+
+.cbf-section {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid #e8e8e8;
+}
+.cbf-section:last-of-type { border-bottom: none; }
+
+.cbf-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #888;
+    margin-bottom: 10px;
+}
+
+.cbf-field-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 8px;
+}
+
+.cbf-field-row label {
+    flex: 0 0 160px;
+    color: #555;
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+.cbf-field-row select,
+.cbf-field-row input[type="text"] {
+    flex: 1;
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 12px;
+    color: #333;
+    background: #fff;
+    outline: none;
+}
+.cbf-field-row select:focus,
+.cbf-field-row input[type="text"]:focus {
+    border-color: #5a9bd5;
+    box-shadow: 0 0 0 2px rgba(90,155,213,0.2);
+}
+
+.cbf-swatch {
+    flex: 0 0 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.cbf-no-fields {
+    font-size: 11px;
+    color: #aaa;
+    margin-top: -4px;
+    margin-bottom: 6px;
+    display: none;
+}
+
+.cbf-help {
+    font-size: 11px;
+    color: #999;
+    line-height: 1.5;
+    margin-top: 8px;
+}
+.cbf-help code {
+    background: #f4f4f4;
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-size: 11px;
+}
+</style>
+</head>
+<body>
+<div data-role="panel">
+
+    <!-- ── Field Mapping ─────────────────────────────────── -->
+    <div class="cbf-section">
+        <div class="cbf-section-title">Field Mapping</div>
+
+        <p id="cbf-no-fields" class="cbf-no-fields">
+            Run the search once to populate field options.
+        </p>
+
+        <div class="cbf-field-row">
+            <label>Compliance % field</label>
+            <select id="cbf-complianceField" class="cbf-field-select">
+                <option value="">Auto-detect</option>
+            </select>
+        </div>
+
+        <div class="cbf-field-row">
+            <label>Threshold field</label>
+            <select id="cbf-thresholdField" class="cbf-field-select">
+                <option value="">Auto-detect</option>
+            </select>
+        </div>
+
+        <div class="cbf-field-row">
+            <label>Compliant count field</label>
+            <select id="cbf-compliantField" class="cbf-field-select">
+                <option value="">Auto-detect</option>
+            </select>
+        </div>
+
+        <div class="cbf-field-row">
+            <label>Non-compliant count field</label>
+            <select id="cbf-noncompliantField" class="cbf-field-select">
+                <option value="">Auto-detect</option>
+            </select>
+        </div>
+
+        <div class="cbf-field-row">
+            <label>Label field</label>
+            <select id="cbf-labelField" class="cbf-field-select">
+                <option value="">Auto-detect</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- ── Threshold Color Mapping ──────────────────────── -->
+    <div class="cbf-section">
+        <div class="cbf-section-title">Threshold Colors</div>
+
+        <div class="cbf-field-row">
+            <span class="cbf-swatch" style="background:#C13B3B;"></span>
+            <label>Red values</label>
+            <input type="text" id="cbf-redText" placeholder="red" />
+        </div>
+
+        <div class="cbf-field-row">
+            <span class="cbf-swatch" style="background:#E8821D;"></span>
+            <label>Yellow / Amber values</label>
+            <input type="text" id="cbf-yellowText" placeholder="yellow, amber" />
+        </div>
+
+        <div class="cbf-field-row">
+            <span class="cbf-swatch" style="background:#5FA864;"></span>
+            <label>Green values</label>
+            <input type="text" id="cbf-greenText" placeholder="green" />
+        </div>
+
+        <p class="cbf-help">
+            Comma-separated. Case-insensitive. Leave blank to use defaults
+            (<code>red</code>, <code>yellow / amber</code>, <code>green</code>).
+        </p>
+    </div>
+
 </div>
+<script>
+(function () {
+    'use strict';
+
+    var NS = 'display.visualizations.custom.compliance_bar_viz.compliance_bar.';
+
+    // Maps control element ID → config property (short name, without NS prefix)
+    var FIELD_CONTROLS = [
+        { id: 'cbf-complianceField',   prop: 'complianceField'   },
+        { id: 'cbf-thresholdField',    prop: 'thresholdField'    },
+        { id: 'cbf-compliantField',    prop: 'compliantField'    },
+        { id: 'cbf-noncompliantField', prop: 'noncompliantField' },
+        { id: 'cbf-labelField',        prop: 'labelField'        }
+    ];
+
+    var TEXT_CONTROLS = [
+        { id: 'cbf-redText',    prop: 'redText'    },
+        { id: 'cbf-yellowText', prop: 'yellowText' },
+        { id: 'cbf-greenText',  prop: 'greenText'  }
+    ];
+
+    var ALL_CONTROLS = FIELD_CONTROLS.concat(TEXT_CONTROLS);
+
+    // ── postMessage helpers ───────────────────────────────
+
+    function sendProp(prop, value) {
+        // Splunk's formatter-editor protocol: send one property update at a time.
+        // We send both the full namespaced key and the short key for compatibility
+        // across Splunk versions.
+        var payload = {
+            action: 'update_property',
+            property: NS + prop,
+            value: value
+        };
+        try { window.parent.postMessage(JSON.stringify(payload), '*'); } catch (e) {}
+        try { window.parent.postMessage(payload, '*'); } catch (e) {}
+    }
+
+    function parseIncoming(raw) {
+        if (!raw) return null;
+        if (typeof raw === 'string') {
+            try { return JSON.parse(raw); } catch (e) { return null; }
+        }
+        return raw;
+    }
+
+    // ── Config apply ──────────────────────────────────────
+
+    function applyConfig(config) {
+        if (!config) return;
+        ALL_CONTROLS.forEach(function (ctrl) {
+            var el = document.getElementById(ctrl.id);
+            if (!el) return;
+            // Accept either the full NS key or the short key
+            var val = config[NS + ctrl.prop];
+            if (val === undefined) val = config[ctrl.prop];
+            el.value = val || '';
+        });
+    }
+
+    // ── Field dropdown population ─────────────────────────
+
+    function populateDropdowns(fields) {
+        var selects = document.querySelectorAll('select.cbf-field-select');
+        selects.forEach(function (select) {
+            var current = select.value;
+            while (select.options.length > 1) select.remove(1);
+            fields.forEach(function (f) {
+                var opt = document.createElement('option');
+                opt.value = f;
+                opt.textContent = f;
+                select.appendChild(opt);
+            });
+            // Restore previously selected value if it's still in the list
+            if (current) select.value = current;
+        });
+
+        var noFields = document.getElementById('cbf-no-fields');
+        if (noFields) noFields.style.display = fields.length ? 'none' : 'block';
+    }
+
+    // Poll for the field list that visualization.js writes to the parent window.
+    // Retry up to ~15 s (50 × 300 ms) to handle slow searches.
+    var pollAttempts = 0;
+    function tryPopulateFields() {
+        var fields = null;
+        var candidates = [window, window.parent, window.top];
+        for (var i = 0; i < candidates.length; i++) {
+            try {
+                if (candidates[i]._cbvFields && candidates[i]._cbvFields.length) {
+                    fields = candidates[i]._cbvFields;
+                    break;
+                }
+            } catch (e) { /* cross-origin */ }
+        }
+        if (fields) {
+            populateDropdowns(fields);
+        } else if (pollAttempts++ < 50) {
+            setTimeout(tryPopulateFields, 300);
+        } else {
+            // Show the hint so the user knows to run the search
+            var noFields = document.getElementById('cbf-no-fields');
+            if (noFields) noFields.style.display = 'block';
+        }
+    }
+
+    // ── Wire up controls ──────────────────────────────────
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Field selects: send on change
+        FIELD_CONTROLS.forEach(function (ctrl) {
+            var el = document.getElementById(ctrl.id);
+            if (!el) return;
+            el.addEventListener('change', function () {
+                sendProp(ctrl.prop, el.value);
+            });
+        });
+
+        // Text inputs: debounced send on input + immediate send on change
+        TEXT_CONTROLS.forEach(function (ctrl) {
+            var el = document.getElementById(ctrl.id);
+            if (!el) return;
+            var debounce;
+            el.addEventListener('input', function () {
+                clearTimeout(debounce);
+                debounce = setTimeout(function () { sendProp(ctrl.prop, el.value); }, 400);
+            });
+            el.addEventListener('change', function () {
+                sendProp(ctrl.prop, el.value);
+            });
+        });
+
+        tryPopulateFields();
+    });
+
+    // ── Receive initialization from Splunk dashboard editor ──
+
+    window.addEventListener('message', function (e) {
+        var data = parseIncoming(e.data);
+        if (!data) return;
+        // Handle both `action` and `type` keys (varies by Splunk version)
+        if (data.action === 'initialize' || data.type === 'initialize') {
+            applyConfig(data.config || data.properties || {});
+        }
+    });
+
+}());
+</script>
+</body>
+</html>
