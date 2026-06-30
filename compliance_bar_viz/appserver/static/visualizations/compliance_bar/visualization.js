@@ -20,47 +20,61 @@ define([
             vizUtils
         ) {
 
-    var COLOR_MAP = {
-        'red':    { fill: '#C13B3B', text: '#C13B3B' },
-        'yellow': { fill: '#E8821D', text: '#E8821D' },
-        'amber':  { fill: '#E8821D', text: '#E8821D' },
-        'green':  { fill: '#5FA864', text: '#3F7D43' }
-    };
-    var DEFAULT_COLOR = { fill: '#999999', text: '#666666' };
+    var PROP_NS = 'display.visualizations.custom.compliance_bar_viz.compliance_bar.';
 
-    var LABEL_FIELD_CANDIDATES = ['label', 'name', 'platform', 'asset_type', 'category'];
-    var THRESHOLD_FIELD_CANDIDATES = ['threshold', 'status', 'color', 'colour'];
-    var NUMERATOR_FIELD_CANDIDATES = ['compliant', 'numerator', 'compliant_count', 'count'];
-    var DENOMINATOR_FIELD_CANDIDATES = ['denominator', 'total', 'total_count', 'asset_count'];
-    var NONCOMPLIANT_FIELD_CANDIDATES = ['noncompliant', 'non_compliant', 'non-compliant', 'noncompliant_count'];
-    var COMPLIANCE_FIELD_CANDIDATES = ['metricvalue', 'compliance', 'compliance_pct', 'percent', 'pct', 'value'];
+    var UNKNOWN_COLOR = { fill: '#999999', text: '#666666' };
 
-    function findByName(fields, candidates) {
-        var lowerFields = fields.map(function(f) { return f.toLowerCase(); });
+    var LABEL_CANDIDATES        = ['label', 'name', 'platform', 'asset_type', 'category'];
+    var THRESHOLD_CANDIDATES    = ['threshold', 'status', 'color', 'colour'];
+    var NUMERATOR_CANDIDATES    = ['compliant', 'numerator', 'compliant_count', 'count'];
+    var DENOMINATOR_CANDIDATES  = ['denominator', 'total', 'total_count', 'asset_count'];
+    var NONCOMPLIANT_CANDIDATES = ['noncompliant', 'non_compliant', 'non-compliant', 'noncompliant_count'];
+    var COMPLIANCE_CANDIDATES   = ['metricvalue', 'compliance', 'compliance_pct', 'percent', 'pct', 'value'];
+
+    // Build the threshold→color map from config text inputs.
+    // Each input is a comma-separated list of text values that map to that color.
+    function buildColorMap(config) {
+        function texts(key, defaults) {
+            var raw = (config[PROP_NS + key] || '').trim();
+            if (!raw) return defaults;
+            return raw.split(',').map(function(s) { return s.trim().toLowerCase(); }).filter(Boolean);
+        }
+        var map = {};
+        texts('redText',    ['red']).forEach(function(t) {
+            map[t] = { fill: '#C13B3B', text: '#C13B3B' };
+        });
+        texts('yellowText', ['yellow', 'amber']).forEach(function(t) {
+            map[t] = { fill: '#E8821D', text: '#E8821D' };
+        });
+        texts('greenText',  ['green']).forEach(function(t) {
+            map[t] = { fill: '#5FA864', text: '#3F7D43' };
+        });
+        return map;
+    }
+
+    // Return the index of `cfgVal` in lowerFields, or fall back to candidate scanning.
+    function resolveField(lowerFields, cfgVal, candidates) {
+        if (cfgVal) {
+            var exact = lowerFields.indexOf(cfgVal.toLowerCase());
+            if (exact > -1) return exact;
+        }
         for (var i = 0; i < candidates.length; i++) {
             var idx = lowerFields.indexOf(candidates[i]);
-            if (idx > -1) {
-                return idx;
-            }
+            if (idx > -1) return idx;
         }
         return -1;
     }
 
-    function findThresholdByValue(row) {
+    // Scan row values to find a field whose value is a recognized threshold word.
+    function findThresholdByValue(row, colorMap) {
         for (var i = 0; i < row.length; i++) {
-            var v = (row[i] || '').toString().toLowerCase().trim();
-            if (COLOR_MAP[v]) {
-                return i;
-            }
+            if (colorMap[(row[i] || '').toString().toLowerCase().trim()]) return i;
         }
         return -1;
     }
 
     function formatNumber(n) {
-        if (isNaN(n)) {
-            return n;
-        }
-        return Number(n).toLocaleString('en-US');
+        return isNaN(n) ? n : Number(n).toLocaleString('en-US');
     }
 
     return SplunkVisualizationBase.extend({
@@ -78,39 +92,47 @@ define([
             });
         },
 
+        // formatData only validates and extracts the raw row. All config-aware
+        // resolution happens in updateView where config is available.
         formatData: function(data) {
-            var rows = data.rows;
-            if (!rows || rows.length === 0) {
+            if (!data.rows || data.rows.length === 0) {
                 throw new SplunkVisualizationBase.VisualizationError(
                     'No results to display. The search must return at least one row.'
                 );
             }
-
             var fields = _.map(data.fields, function(f) { return f.name; });
-            var row = rows[0];
+            // Expose field list for the formatter's field-picker dropdowns.
+            // The formatter may be in a child iframe, so write to several levels.
+            try { window._cbvFields = fields; } catch (e) {}
+            try { window.parent._cbvFields = fields; } catch (e) {}
+            return { fields: fields, row: data.rows[0] };
+        },
 
-            var thresholdIdx = findByName(fields, THRESHOLD_FIELD_CANDIDATES);
-            if (thresholdIdx === -1) {
-                thresholdIdx = findThresholdByValue(row);
-            }
+        updateView: function(d, config) {
+            var fields = d.fields;
+            var row    = d.row;
+            var lower  = fields.map(function(f) { return f.toLowerCase(); });
 
-            var labelIdx = findByName(fields, LABEL_FIELD_CANDIDATES);
+            var colorMap = buildColorMap(config);
+
+            // --- Field resolution (config override → name match → value scan) ---
+            var thresholdIdx = resolveField(lower, config[PROP_NS + 'thresholdField'], THRESHOLD_CANDIDATES);
+            if (thresholdIdx === -1) thresholdIdx = findThresholdByValue(row, colorMap);
+
+            var labelIdx = resolveField(lower, config[PROP_NS + 'labelField'], LABEL_CANDIDATES);
             if (labelIdx === -1) {
-                // fall back to the first field that isn't the threshold field and isn't purely numeric
                 for (var i = 0; i < row.length; i++) {
-                    if (i !== thresholdIdx && isNaN(parseFloat(row[i]))) {
-                        labelIdx = i;
-                        break;
-                    }
+                    if (i !== thresholdIdx && isNaN(parseFloat(row[i]))) { labelIdx = i; break; }
                 }
             }
 
-            var numeratorIdx = findByName(fields, NUMERATOR_FIELD_CANDIDATES);
-            var denominatorIdx = findByName(fields, DENOMINATOR_FIELD_CANDIDATES);
-            var noncompliantIdx = findByName(fields, NONCOMPLIANT_FIELD_CANDIDATES);
-            var complianceIdx = findByName(fields, COMPLIANCE_FIELD_CANDIDATES);
+            var numeratorIdx    = resolveField(lower, config[PROP_NS + 'compliantField'],    NUMERATOR_CANDIDATES);
+            var noncompliantIdx = resolveField(lower, config[PROP_NS + 'noncompliantField'], NONCOMPLIANT_CANDIDATES);
+            var denominatorIdx  = resolveField(lower, config[PROP_NS + 'denominatorField'],  DENOMINATOR_CANDIDATES);
+            var complianceIdx   = resolveField(lower, config[PROP_NS + 'complianceField'],   COMPLIANCE_CANDIDATES);
 
-            var numerator = numeratorIdx > -1 ? parseFloat(row[numeratorIdx]) : NaN;
+            // --- Value extraction ---
+            var numerator    = numeratorIdx    > -1 ? parseFloat(row[numeratorIdx])    : NaN;
             var noncompliant = noncompliantIdx > -1 ? parseFloat(row[noncompliantIdx]) : NaN;
 
             var denominator;
@@ -132,65 +154,43 @@ define([
             }
             compliance = isNaN(compliance) ? 0 : Math.max(0, Math.min(100, compliance));
 
-            var threshold = thresholdIdx > -1
-                ? (row[thresholdIdx] || '').toString().toLowerCase().trim()
-                : '';
-
-            var label = labelIdx > -1 ? row[labelIdx] : '';
-
-            var hasCounts = !isNaN(numerator) && !isNaN(denominator);
-
-            return {
-                label: label,
-                compliance: compliance,
-                threshold: threshold,
-                hasCounts: hasCounts,
-                numerator: numerator,
-                denominator: denominator,
-                thresholdFieldName: thresholdIdx > -1 ? fields[thresholdIdx] : null
-            };
-        },
-
-        updateView: function(d, config) {
-            var compliance = d.compliance;
+            var threshold  = thresholdIdx > -1 ? (row[thresholdIdx] || '').toString().toLowerCase().trim() : '';
+            var label      = labelIdx     > -1 ? row[labelIdx] : '';
+            var hasCounts  = !isNaN(numerator) && !isNaN(denominator);
+            var colors     = colorMap[threshold] || UNKNOWN_COLOR;
             var roundedPct = Math.round(compliance);
-            var colors = COLOR_MAP[d.threshold] || DEFAULT_COLOR;
 
+            // --- Render ---
             this.$el.empty();
 
             var $row = $('<div class="cbv-row"></div>');
 
             var $header = $('<div class="cbv-header"></div>');
-            if (d.label) {
-                $header.append($('<span class="cbv-label"></span>').text(d.label));
+            if (label) {
+                $header.append($('<span class="cbv-label"></span>').text(label));
             }
 
             var $meta = $('<span class="cbv-meta"></span>');
-            if (d.hasCounts) {
-                var countText = formatNumber(d.numerator) + ' of ' + formatNumber(d.denominator) +
+            if (hasCounts) {
+                var countText = formatNumber(numerator) + ' of ' + formatNumber(denominator) +
                     ' (' + roundedPct + '%)';
                 $meta.append($('<span class="cbv-count"></span>').text(countText));
             }
 
-            if (d.threshold && COLOR_MAP[d.threshold]) {
+            if (threshold) {
+                var isKnown = !!colorMap[threshold];
                 var $pill = $('<span class="cbv-pill"></span>')
-                    .text(d.threshold.toUpperCase())
-                    .css({
-                        color: colors.text,
-                        borderColor: colors.text
-                    });
+                    .text(threshold.toUpperCase())
+                    .toggleClass('cbv-pill-unknown', !isKnown);
+                if (isKnown) $pill.css({ color: colors.text, borderColor: colors.text });
                 $meta.append($pill);
-            } else if (d.threshold) {
-                var $pillUnknown = $('<span class="cbv-pill cbv-pill-unknown"></span>')
-                    .text(d.threshold.toUpperCase());
-                $meta.append($pillUnknown);
             }
 
             $header.append($meta);
             $row.append($header);
 
             var $track = $('<div class="cbv-track"></div>');
-            var $fill = $('<div class="cbv-fill"></div>').css({
+            var $fill  = $('<div class="cbv-fill"></div>').css({
                 width: roundedPct + '%',
                 backgroundColor: colors.fill
             });
@@ -201,19 +201,22 @@ define([
             $track.append($fill);
 
             if (roundedPct < 15) {
-                var $outsideLabel = $('<span class="cbv-outside-label"></span>')
-                    .text(roundedPct + '%')
-                    .css({ left: 'calc(' + roundedPct + '% + 8px)' });
-                $track.append($outsideLabel);
+                $track.append(
+                    $('<span class="cbv-outside-label"></span>')
+                        .text(roundedPct + '%')
+                        .css({ left: 'calc(' + roundedPct + '% + 8px)' })
+                );
             }
 
             $row.append($track);
 
-            if (d.threshold && !COLOR_MAP[d.threshold]) {
-                var fieldNote = d.thresholdFieldName ? ('"' + d.thresholdFieldName + '" ') : '';
+            if (threshold && !colorMap[threshold]) {
+                var fieldNote = thresholdIdx > -1 ? ('"' + fields[thresholdIdx] + '" ') : '';
+                var knownValues = Object.keys(colorMap).join(', ') || 'none configured';
                 $row.append(
                     $('<div class="cbv-hint"></div>').text(
-                        'Threshold field ' + fieldNote + 'value "' + d.threshold + '" not recognized (expected red/yellow/green).'
+                        'Threshold field ' + fieldNote + 'value "' + threshold +
+                        '" not recognized (expected: ' + knownValues + ').'
                     )
                 );
             }
