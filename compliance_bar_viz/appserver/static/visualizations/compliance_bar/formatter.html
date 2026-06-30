@@ -1,0 +1,20 @@
+<div data-role="panel" class="compliance-bar-formatter">
+    <p style="padding: 10px; font-size: 12px; color: #999; line-height: 1.5;">
+        This visualization reads these fields from your search results (one row per panel):
+        <br/><br/>
+        <strong>metricValue</strong> — compliance % (0–100), drives the bar width and "(P%)" text.
+        <br/>
+        <strong>threshold</strong> — <code>red</code>, <code>yellow</code>, or <code>green</code>. Drives the bar and pill color.
+        <br/>
+        <strong>compliant</strong> — compliant asset count, shown as the first number in "N of M".
+        <br/>
+        <strong>noncompliant</strong> — non-compliant asset count. Combined with <code>compliant</code> to get the "of M" total.
+        <br/><br/>
+        Row labels (e.g. "BBC (On-Prem)") are not pulled from the data — set them via the panel title,
+        since each platform/row is its own panel using this same visualization.
+        <br/><br/>
+        Example search:
+        <br/>
+        <code>| stats latest(metricValue) as metricValue latest(threshold) as threshold latest(compliant) as compliant latest(noncompliant) as noncompliant</code>
+    </p>
+</div>
