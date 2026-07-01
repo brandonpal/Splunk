@@ -2,7 +2,7 @@
     width: 100%;
     height: 100%;
     box-sizing: border-box;
-    padding: 12px 4px;
+    padding: 6px 4px 12px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -10,17 +10,19 @@
     width: 100%;
 }
 
+.cbv-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1B4F8C;
+    line-height: 1.2;
+    margin: 0 0 6px;
+}
+
 .cbv-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     margin-bottom: 8px;
-}
-
-.cbv-label {
-    font-size: 14px;
-    font-weight: 700;
-    color: #1B4F8C;
 }
 
 .cbv-meta {
@@ -31,7 +33,8 @@
 }
 
 .cbv-count {
-    font-size: 13px;
+    font-size: 16px;
+    font-weight: 600;
     color: #4a4a4a;
 }
 

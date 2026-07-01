@@ -85,10 +85,42 @@ body {
     border-radius: 2px;
     font-size: 11px;
 }
+
+.cbf-field-row input[type="color"] {
+    flex: 0 0 44px;
+    height: 26px;
+    padding: 2px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: #fff;
+}
 </style>
 </head>
 <body>
 <div data-role="panel">
+
+    <!-- ── General ───────────────────────────────────────── -->
+    <div class="cbf-section">
+        <div class="cbf-section-title">General</div>
+
+        <div class="cbf-field-row">
+            <label>Title</label>
+            <input type="text" id="cbf-title" placeholder="e.g. BBC (On-Prem)" />
+        </div>
+
+        <div class="cbf-field-row">
+            <label>Title field (override)</label>
+            <select id="cbf-titleField" class="cbf-field-select">
+                <option value="">None (use Title text)</option>
+            </select>
+        </div>
+
+        <p class="cbf-help">
+            The blue title above the bar comes from the Title text, unless a
+            Title field is selected — the row's value for that field is used
+            instead. The title is never guessed from the data.
+        </p>
+    </div>
 
     <!-- ── Field Mapping ─────────────────────────────────── -->
     <div class="cbf-section">
@@ -125,13 +157,6 @@ body {
                 <option value="">Auto-detect</option>
             </select>
         </div>
-
-        <div class="cbf-field-row">
-            <label>Label field</label>
-            <select id="cbf-labelField" class="cbf-field-select">
-                <option value="">Auto-detect</option>
-            </select>
-        </div>
     </div>
 
     <!-- ── Threshold Color Mapping ──────────────────────── -->
@@ -139,26 +164,31 @@ body {
         <div class="cbf-section-title">Threshold Colors</div>
 
         <div class="cbf-field-row">
-            <span class="cbf-swatch" style="background:#C13B3B;"></span>
+            <span class="cbf-swatch" id="cbf-redSwatch" style="background:#C13B3B;"></span>
             <label>Red values</label>
             <input type="text" id="cbf-redText" placeholder="red" />
+            <input type="color" id="cbf-redColor" value="#C13B3B" />
         </div>
 
         <div class="cbf-field-row">
-            <span class="cbf-swatch" style="background:#E8821D;"></span>
+            <span class="cbf-swatch" id="cbf-yellowSwatch" style="background:#E8821D;"></span>
             <label>Yellow / Amber values</label>
             <input type="text" id="cbf-yellowText" placeholder="yellow, amber" />
+            <input type="color" id="cbf-yellowColor" value="#E8821D" />
         </div>
 
         <div class="cbf-field-row">
-            <span class="cbf-swatch" style="background:#5FA864;"></span>
+            <span class="cbf-swatch" id="cbf-greenSwatch" style="background:#5FA864;"></span>
             <label>Green values</label>
             <input type="text" id="cbf-greenText" placeholder="green" />
+            <input type="color" id="cbf-greenColor" value="#5FA864" />
         </div>
 
         <p class="cbf-help">
-            Comma-separated. Case-insensitive. Leave blank to use defaults
-            (<code>red</code>, <code>yellow / amber</code>, <code>green</code>).
+            Values field: comma-separated, case-insensitive text that maps to
+            each color (defaults: <code>red</code>, <code>yellow / amber</code>,
+            <code>green</code>). Swatch: the actual fill/accent color used for
+            that threshold.
         </p>
     </div>
 
@@ -175,16 +205,25 @@ body {
         { id: 'cbf-thresholdField',    prop: 'thresholdField'    },
         { id: 'cbf-compliantField',    prop: 'compliantField'    },
         { id: 'cbf-noncompliantField', prop: 'noncompliantField' },
-        { id: 'cbf-labelField',        prop: 'labelField'        }
+        { id: 'cbf-titleField',        prop: 'titleField'        }
     ];
 
     var TEXT_CONTROLS = [
+        { id: 'cbf-title',      prop: 'title'      },
         { id: 'cbf-redText',    prop: 'redText'    },
         { id: 'cbf-yellowText', prop: 'yellowText' },
         { id: 'cbf-greenText',  prop: 'greenText'  }
     ];
 
-    var ALL_CONTROLS = FIELD_CONTROLS.concat(TEXT_CONTROLS);
+    // Color pickers: same update protocol as text inputs, but default to a
+    // real color (not empty) and keep an adjacent swatch in sync.
+    var COLOR_CONTROLS = [
+        { id: 'cbf-redColor',    prop: 'redColor',    swatch: 'cbf-redSwatch',    'default': '#C13B3B' },
+        { id: 'cbf-yellowColor', prop: 'yellowColor', swatch: 'cbf-yellowSwatch', 'default': '#E8821D' },
+        { id: 'cbf-greenColor',  prop: 'greenColor',  swatch: 'cbf-greenSwatch',  'default': '#5FA864' }
+    ];
+
+    var ALL_CONTROLS = FIELD_CONTROLS.concat(TEXT_CONTROLS).concat(COLOR_CONTROLS);
 
     // ── postMessage helpers ───────────────────────────────
 
@@ -219,7 +258,12 @@ body {
             // Accept either the full NS key or the short key
             var val = config[NS + ctrl.prop];
             if (val === undefined) val = config[ctrl.prop];
-            el.value = val || '';
+            el.value = val || ctrl['default'] || '';
+        });
+        COLOR_CONTROLS.forEach(function (ctrl) {
+            var swatch = document.getElementById(ctrl.swatch);
+            var el = document.getElementById(ctrl.id);
+            if (swatch && el) swatch.style.background = el.value;
         });
     }
 
@@ -291,6 +335,17 @@ body {
                 debounce = setTimeout(function () { sendProp(ctrl.prop, el.value); }, 400);
             });
             el.addEventListener('change', function () {
+                sendProp(ctrl.prop, el.value);
+            });
+        });
+
+        // Color pickers: send immediately and keep the swatch in sync
+        COLOR_CONTROLS.forEach(function (ctrl) {
+            var el = document.getElementById(ctrl.id);
+            var swatch = document.getElementById(ctrl.swatch);
+            if (!el) return;
+            el.addEventListener('input', function () {
+                if (swatch) swatch.style.background = el.value;
                 sendProp(ctrl.prop, el.value);
             });
         });

@@ -1,8 +1,10 @@
 /*
  * Compliance Bar Visualization
- * Renders one labeled, horizontal progress bar per panel: label + "N of M (P%)"
- * count + a status pill on top, a colored track filled left-to-right below.
- * Color is driven by a threshold field (red / yellow / green).
+ * Renders one titled, horizontal progress bar per panel: a blue title, then
+ * a "N of M (P%)" count + a status pill on top, a colored track filled
+ * left-to-right below. Color is driven by a threshold field (red / yellow /
+ * green). The title comes from the General config (static text, or a field
+ * override) — it is never guessed from the data.
  *
  * Intended use: one panel/search per row (e.g. one per platform), each bound
  * to its own instance of this visualization, stacked in the dashboard.
@@ -24,7 +26,6 @@ define([
 
     var UNKNOWN_COLOR = { fill: '#999999', text: '#666666' };
 
-    var LABEL_CANDIDATES        = ['label', 'name', 'platform', 'asset_type', 'category'];
     var THRESHOLD_CANDIDATES    = ['threshold', 'status', 'color', 'colour'];
     var NUMERATOR_CANDIDATES    = ['compliant', 'numerator', 'compliant_count', 'count'];
     var DENOMINATOR_CANDIDATES  = ['denominator', 'total', 'total_count', 'asset_count'];
@@ -33,21 +34,30 @@ define([
 
     // Build the threshold→color map from config text inputs.
     // Each input is a comma-separated list of text values that map to that color.
+    // Fill/text colors are also configurable (default to the historical hues).
     function buildColorMap(config) {
         function texts(key, defaults) {
             var raw = (config[PROP_NS + key] || '').trim();
             if (!raw) return defaults;
             return raw.split(',').map(function(s) { return s.trim().toLowerCase(); }).filter(Boolean);
         }
+        function hex(key, fallback) {
+            var raw = (config[PROP_NS + key] || '').trim();
+            return raw || fallback;
+        }
+        var redColor    = hex('redColor',    '#C13B3B');
+        var yellowColor = hex('yellowColor', '#E8821D');
+        var greenColor  = hex('greenColor',  '#5FA864');
+
         var map = {};
         texts('redText',    ['red']).forEach(function(t) {
-            map[t] = { fill: '#C13B3B', text: '#C13B3B' };
+            map[t] = { fill: redColor, text: redColor };
         });
         texts('yellowText', ['yellow', 'amber']).forEach(function(t) {
-            map[t] = { fill: '#E8821D', text: '#E8821D' };
+            map[t] = { fill: yellowColor, text: yellowColor };
         });
         texts('greenText',  ['green']).forEach(function(t) {
-            map[t] = { fill: '#5FA864', text: '#3F7D43' };
+            map[t] = { fill: greenColor, text: greenColor };
         });
         return map;
     }
@@ -119,12 +129,10 @@ define([
             var thresholdIdx = resolveField(lower, config[PROP_NS + 'thresholdField'], THRESHOLD_CANDIDATES);
             if (thresholdIdx === -1) thresholdIdx = findThresholdByValue(row, colorMap);
 
-            var labelIdx = resolveField(lower, config[PROP_NS + 'labelField'], LABEL_CANDIDATES);
-            if (labelIdx === -1) {
-                for (var i = 0; i < row.length; i++) {
-                    if (i !== thresholdIdx && isNaN(parseFloat(row[i]))) { labelIdx = i; break; }
-                }
-            }
+            // Title never falls back to guessing from data. It's either the static
+            // "Title" config text, or the value of an explicitly configured
+            // "Title field" override (General tab in the config drawer).
+            var titleFieldIdx = resolveField(lower, config[PROP_NS + 'titleField'], []);
 
             var numeratorIdx    = resolveField(lower, config[PROP_NS + 'compliantField'],    NUMERATOR_CANDIDATES);
             var noncompliantIdx = resolveField(lower, config[PROP_NS + 'noncompliantField'], NONCOMPLIANT_CANDIDATES);
@@ -155,7 +163,8 @@ define([
             compliance = isNaN(compliance) ? 0 : Math.max(0, Math.min(100, compliance));
 
             var threshold  = thresholdIdx > -1 ? (row[thresholdIdx] || '').toString().toLowerCase().trim() : '';
-            var label      = labelIdx     > -1 ? row[labelIdx] : '';
+            var title      = (titleFieldIdx > -1 && row[titleFieldIdx] !== '' && row[titleFieldIdx] != null) ?
+                                  row[titleFieldIdx] : (config[PROP_NS + 'title'] || '');
             var hasCounts  = !isNaN(numerator) && !isNaN(denominator);
             var colors     = colorMap[threshold] || UNKNOWN_COLOR;
             var roundedPct = Math.round(compliance);
@@ -165,10 +174,11 @@ define([
 
             var $row = $('<div class="cbv-row"></div>');
 
-            var $header = $('<div class="cbv-header"></div>');
-            if (label) {
-                $header.append($('<span class="cbv-label"></span>').text(label));
+            if (title) {
+                $row.append($('<div class="cbv-title"></div>').text(title));
             }
+
+            var $header = $('<div class="cbv-header"></div>');
 
             var $meta = $('<span class="cbv-meta"></span>');
             if (hasCounts) {

@@ -1,6 +1,6 @@
 # Compliance Bar Visualization
 
-A custom Splunk visualization for Simple XML / Classic dashboards. Each instance renders one row: an optional label, a "compliant of total (P%)" count line, a colored status pill, and a horizontal bar that fills left-to-right colored red/yellow/green by a threshold field.
+A custom Splunk visualization for Simple XML / Classic dashboards. Each instance renders a blue title, a "compliant of total (P%)" count line, a colored status pill, and a horizontal bar that fills left-to-right colored red/yellow/green by a threshold field.
 
 ## Installation
 
@@ -33,8 +33,16 @@ index=vuln_mgmt sourcetype=compliance_report platform="BBC (On-Prem)"
         latest(noncompliant) as noncompliant
 ```
 
-Set the row label via the panel title — labels are not pulled from data.
+Set the title via the **General** section of the visualization's format drawer: enter static `Title` text, or pick a `Title field` to use that field's value from the row instead. The title is never guessed from the data.
 
 ## Field auto-detection
 
-The visualization tolerates variant field names (case-insensitive). It tries candidate names in priority order before falling back to value scanning or position-based guesses. See the brief for the full candidate list.
+The visualization tolerates variant field names (case-insensitive) for the compliance, threshold, and count fields. It tries candidate names in priority order before falling back to value scanning or position-based guesses. See the brief for the full candidate list.
+
+## Configuration drawer
+
+Open the visualization's format drawer (the paintbrush/format icon on the panel) to configure:
+
+- **General** — `Title` text and an optional `Title field` override.
+- **Field Mapping** — override auto-detected fields for compliance %, threshold, compliant count, and non-compliant count.
+- **Threshold Colors** — comma-separated values that map to red/yellow/green, plus a color picker for each threshold's actual fill/accent color.
