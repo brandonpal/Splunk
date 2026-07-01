@@ -1,17 +1,17 @@
 {
     "schemaVersion": "2.0.0",
     "info": {
-        "title": "Stat Box Visualization",
+        "title": "Compliance Box Visualization",
         "id": {
             "group": null,
-            "name": "stat_box_viz",
+            "name": "compliance_box_viz",
             "version": "1.0.0"
         },
         "author": [
             { "name": "Brandon" }
         ],
         "releaseDate": null,
-        "description": "Centered title and number stat box for Dashboard Studio, with configurable title text/color, optional % suffix, border color/size, corner radius, and background color.",
+        "description": "Centered title and number compliance box for Dashboard Studio, with configurable title text/color, optional % suffix, border color/size, corner radius, and background color.",
         "classification": {
             "intendedAudience": "",
             "categories": [],

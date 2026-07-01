@@ -1,5 +1,5 @@
 /*
- * Stat Box Visualization (Dashboard Studio)
+ * Compliance Box Visualization (Dashboard Studio)
  * Renders a single centered title above a single centered number/value inside
  * a configurable box (border color/size/radius, background color).
  */
@@ -37,7 +37,7 @@ function formatValue(raw) {
     return Number.isInteger(num) ? num.toString() : num.toLocaleString('en-US');
 }
 
-function StatBox(props) {
+function ComplianceBox(props) {
     const { options, dataSources } = props;
 
     const extracted = extractRow(dataSources);
@@ -107,9 +107,9 @@ const styles = {
     },
 };
 
-StatBox.config = {
-    key: 'stat_box_viz.stat_box',
-    name: 'Stat Box',
+ComplianceBox.config = {
+    key: 'compliance_box_viz.compliance_box',
+    name: 'Compliance Box',
     category: 'Single Value',
     dataContract: {
         requiredDataSources: ['primary'],
@@ -176,7 +176,7 @@ StatBox.config = {
     },
     editorConfig: [
         {
-            label: 'Stat Box: Title',
+            label: 'Compliance Box: Title',
             layout: [
                 [{ label: 'Title text', option: 'titleText', editor: 'editor.text' }],
                 [
@@ -196,7 +196,7 @@ StatBox.config = {
             ],
         },
         {
-            label: 'Stat Box: Number',
+            label: 'Compliance Box: Number',
             layout: [
                 [{ label: 'Value field (blank = auto)', option: 'valueField', editor: 'editor.text' }],
                 [{ label: 'Show % sign', option: 'showPercent', editor: 'editor.checkbox' }],
@@ -217,7 +217,7 @@ StatBox.config = {
             ],
         },
         {
-            label: 'Stat Box: Border & Background',
+            label: 'Compliance Box: Border & Background',
             layout: [
                 [
                     {
@@ -252,4 +252,4 @@ StatBox.config = {
     ],
 };
 
-export default StatBox;
+export default ComplianceBox;

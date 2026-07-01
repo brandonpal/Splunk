@@ -47,7 +47,7 @@ module.exports = webpackMerge.merge(baseConfig, {
         react: 'react',
     },
     output: {
-        path: path.resolve(__dirname, 'appserver/static/visualizations/stat_box'),
+        path: path.resolve(__dirname, 'appserver/static/visualizations/compliance_box'),
         filename: '[name].js',
     },
     plugins: [new AmdSelfExecutePlugin()],
