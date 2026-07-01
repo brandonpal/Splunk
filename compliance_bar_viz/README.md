@@ -1,6 +1,25 @@
 # Compliance Bar Visualization
 
-A custom Splunk visualization for Simple XML / Classic dashboards. Each instance renders one row: an optional label, a "compliant of total (P%)" count line, a colored status pill, and a horizontal bar that fills left-to-right colored red/yellow/green by a threshold field.
+A custom **Dashboard Studio** visualization. Each instance renders one row: an
+optional label, a "compliant of total (P%)" count line, a colored status
+pill, and a horizontal bar that fills left-to-right colored red/yellow/green
+by a threshold field.
+
+## Building
+
+The visualization body ships as a prebuilt bundle at
+`appserver/static/visualizations/compliance_bar/visualization.js`, so no
+build step is required to install the app as-is. To make source changes:
+
+```
+npm install
+npm run build
+```
+
+This compiles `src/visualization.jsx` with webpack into
+`appserver/static/visualizations/compliance_bar/visualization.js`. Commit the
+rebuilt bundle along with any source changes — Splunk loads that file
+directly and does not run a build step itself.
 
 ## Installation
 
@@ -13,16 +32,24 @@ A custom Splunk visualization for Simple XML / Classic dashboards. Each instance
 
 ## Usage
 
-Reference this viz in dashboard XML as `viz_type="compliance_bar_viz.compliance_bar"`.
+Add the visualization to a Dashboard Studio dashboard (viz type
+`compliance_bar_viz.compliance_bar`) and bind a search that returns **one
+row**. All configuration — field mapping, threshold colors, and the title/count
+text style — is available in the visualization's configuration panel
+("Compliance Bar: Color and style", "Compliance Bar: Field Mapping",
+"Compliance Bar: Threshold Colors" sections), no source-code editing needed.
 
-Each panel's search must return **one row** with these fields:
+Default field names it looks for (case-insensitive, overridable per-panel via
+the Field Mapping section):
 
 | Field          | Meaning                              |
-|----------------|--------------------------------------|
-| `metricValue`  | Compliance % (0–100)                 |
+|----------------|---------------------------------------|
+| `metricvalue`  | Compliance % (0–100)                 |
 | `threshold`    | `red`, `yellow`, or `green`          |
 | `compliant`    | Compliant asset count                |
 | `noncompliant` | Non-compliant asset count            |
+| `total`        | Total (denominator) asset count      |
+| `label`        | Row label                            |
 
 Example SPL:
 ```spl
@@ -31,10 +58,22 @@ index=vuln_mgmt sourcetype=compliance_report platform="BBC (On-Prem)"
         latest(threshold) as threshold
         latest(compliant) as compliant
         latest(noncompliant) as noncompliant
+        latest(label) as label
 ```
-
-Set the row label via the panel title — labels are not pulled from data.
 
 ## Field auto-detection
 
-The visualization tolerates variant field names (case-insensitive). It tries candidate names in priority order before falling back to value scanning or position-based guesses. See the brief for the full candidate list.
+The visualization tolerates variant field names (case-insensitive). It tries
+the configured field name first, then candidate names in priority order,
+before falling back to value scanning or position-based guesses. See
+`src/visualization.jsx` for the full candidate lists.
+
+## Title / count styling
+
+- **Title** (row label) color and font size: `titleColor` / `titleFontSize`
+  options, default `#003D82` / 16px.
+- **Count** ("N of M (P%)") color and font size: `countColor` /
+  `countFontSize` options, default `#898989` / 11px.
+
+Both are editable per-panel in the "Compliance Bar: Color and style" section
+of the configuration drawer.
