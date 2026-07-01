@@ -142,41 +142,43 @@ function ComplianceBar(props) {
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                {label ? (
-                    <span
-                        style={{
-                            fontSize: `${options.titleFontSize}px`,
-                            fontWeight: 700,
-                            color: options.titleColor,
-                        }}
-                    >
-                        {label}
-                    </span>
-                ) : null}
-                <span style={styles.meta}>
+                <span style={styles.titleGroup}>
+                    {label ? (
+                        <span
+                            style={{
+                                fontSize: `${options.titleFontSize}px`,
+                                fontWeight: 700,
+                                color: options.titleColor,
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            {label}
+                        </span>
+                    ) : null}
                     {hasCounts ? (
                         <span
                             style={{
                                 fontSize: `${options.countFontSize}px`,
                                 color: options.countColor,
+                                whiteSpace: 'nowrap',
                             }}
                         >
                             {countText}
                         </span>
                     ) : null}
-                    {threshold ? (
-                        <span
-                            style={{
-                                ...styles.pill,
-                                ...(isKnownThreshold
-                                    ? { color: colors.text, borderColor: colors.text }
-                                    : { color: '#666', borderColor: '#999' }),
-                            }}
-                        >
-                            {threshold.toUpperCase()}
-                        </span>
-                    ) : null}
                 </span>
+                {threshold ? (
+                    <span
+                        style={{
+                            ...styles.pill,
+                            ...(isKnownThreshold
+                                ? { color: colors.text, borderColor: colors.text }
+                                : { color: '#666', borderColor: '#999' }),
+                        }}
+                    >
+                        {threshold.toUpperCase()}
+                    </span>
+                ) : null}
             </div>
 
             <div style={styles.track}>
@@ -209,15 +211,15 @@ const styles = {
     },
     header: {
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'baseline',
         justifyContent: 'space-between',
         marginBottom: 8,
     },
-    meta: {
+    titleGroup: {
         display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        marginLeft: 'auto',
+        alignItems: 'baseline',
+        gap: 10,
+        overflow: 'hidden',
     },
     pill: {
         display: 'inline-block',
