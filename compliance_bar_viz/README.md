@@ -45,4 +45,4 @@ Open the visualization's format drawer (the paintbrush/format icon on the panel)
 
 - **General** — `Title` text and an optional `Title field` override.
 - **Field Mapping** — override auto-detected fields for compliance %, threshold, compliant count, and non-compliant count.
-- **Threshold Colors** — comma-separated values that map to red/yellow/green, plus a color picker for each threshold's actual fill/accent color.
+- **Threshold Colors** — comma-separated values that map to red/yellow/green/error, plus a color picker for each threshold's actual fill/accent color. Any threshold value that doesn't match one of these lists (an unexpected value) is also shown in the Error color.

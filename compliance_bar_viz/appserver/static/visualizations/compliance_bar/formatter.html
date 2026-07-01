@@ -184,11 +184,20 @@ body {
             <input type="color" id="cbf-greenColor" value="#5FA864" />
         </div>
 
+        <div class="cbf-field-row">
+            <span class="cbf-swatch" id="cbf-errorSwatch" style="background:#767676;"></span>
+            <label>Error values</label>
+            <input type="text" id="cbf-errorText" placeholder="error" />
+            <input type="color" id="cbf-errorColor" value="#767676" />
+        </div>
+
         <p class="cbf-help">
             Values field: comma-separated, case-insensitive text that maps to
             each color (defaults: <code>red</code>, <code>yellow / amber</code>,
-            <code>green</code>). Swatch: the actual fill/accent color used for
-            that threshold.
+            <code>green</code>, <code>error</code>). Swatch: the actual
+            fill/accent color used for that threshold. Any threshold value
+            that doesn't match one of these lists is also treated as an
+            error and shown in the Error color.
         </p>
     </div>
 
@@ -212,7 +221,8 @@ body {
         { id: 'cbf-title',      prop: 'title'      },
         { id: 'cbf-redText',    prop: 'redText'    },
         { id: 'cbf-yellowText', prop: 'yellowText' },
-        { id: 'cbf-greenText',  prop: 'greenText'  }
+        { id: 'cbf-greenText',  prop: 'greenText'  },
+        { id: 'cbf-errorText',  prop: 'errorText'  }
     ];
 
     // Color pickers: same update protocol as text inputs, but default to a
@@ -220,7 +230,8 @@ body {
     var COLOR_CONTROLS = [
         { id: 'cbf-redColor',    prop: 'redColor',    swatch: 'cbf-redSwatch',    'default': '#C13B3B' },
         { id: 'cbf-yellowColor', prop: 'yellowColor', swatch: 'cbf-yellowSwatch', 'default': '#E8821D' },
-        { id: 'cbf-greenColor',  prop: 'greenColor',  swatch: 'cbf-greenSwatch',  'default': '#5FA864' }
+        { id: 'cbf-greenColor',  prop: 'greenColor',  swatch: 'cbf-greenSwatch',  'default': '#5FA864' },
+        { id: 'cbf-errorColor',  prop: 'errorColor',  swatch: 'cbf-errorSwatch',  'default': '#767676' }
     ];
 
     var ALL_CONTROLS = FIELD_CONTROLS.concat(TEXT_CONTROLS).concat(COLOR_CONTROLS);

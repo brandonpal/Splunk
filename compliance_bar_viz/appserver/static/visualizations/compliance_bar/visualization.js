@@ -24,17 +24,18 @@ define([
 
     var PROP_NS = 'display.visualizations.custom.compliance_bar_viz.compliance_bar.';
 
-    var UNKNOWN_COLOR = { fill: '#999999', text: '#666666' };
-
     var THRESHOLD_CANDIDATES    = ['threshold', 'status', 'color', 'colour'];
     var NUMERATOR_CANDIDATES    = ['compliant', 'numerator', 'compliant_count', 'count'];
     var DENOMINATOR_CANDIDATES  = ['denominator', 'total', 'total_count', 'asset_count'];
     var NONCOMPLIANT_CANDIDATES = ['noncompliant', 'non_compliant', 'non-compliant', 'noncompliant_count'];
     var COMPLIANCE_CANDIDATES   = ['metricvalue', 'compliance', 'compliance_pct', 'percent', 'pct', 'value'];
 
-    // Build the threshold→color map from config text inputs.
-    // Each input is a comma-separated list of text values that map to that color.
-    // Fill/text colors are also configurable (default to the historical hues).
+    // Build the threshold→color map from config text inputs, plus the fallback
+    // "error" color used for any threshold value that isn't recognized (either
+    // explicitly configured as an error value, or simply unexpected).
+    // Each text input is a comma-separated list of text values that map to that
+    // color. Fill/text colors are also configurable (default to the historical
+    // hues, plus a neutral gray for errors).
     function buildColorMap(config) {
         function texts(key, defaults) {
             var raw = (config[PROP_NS + key] || '').trim();
@@ -48,6 +49,7 @@ define([
         var redColor    = hex('redColor',    '#C13B3B');
         var yellowColor = hex('yellowColor', '#E8821D');
         var greenColor  = hex('greenColor',  '#5FA864');
+        var errorColor  = hex('errorColor',  '#767676');
 
         var map = {};
         texts('redText',    ['red']).forEach(function(t) {
@@ -59,7 +61,10 @@ define([
         texts('greenText',  ['green']).forEach(function(t) {
             map[t] = { fill: greenColor, text: greenColor };
         });
-        return map;
+        texts('errorText',  ['error']).forEach(function(t) {
+            map[t] = { fill: errorColor, text: errorColor };
+        });
+        return { map: map, errorColor: { fill: errorColor, text: errorColor } };
     }
 
     // Return the index of `cfgVal` in lowerFields, or fall back to candidate scanning.
@@ -123,7 +128,8 @@ define([
             var row    = d.row;
             var lower  = fields.map(function(f) { return f.toLowerCase(); });
 
-            var colorMap = buildColorMap(config);
+            var built    = buildColorMap(config);
+            var colorMap = built.map;
 
             // --- Field resolution (config override → name match → value scan) ---
             var thresholdIdx = resolveField(lower, config[PROP_NS + 'thresholdField'], THRESHOLD_CANDIDATES);
@@ -166,7 +172,7 @@ define([
             var title      = (titleFieldIdx > -1 && row[titleFieldIdx] !== '' && row[titleFieldIdx] != null) ?
                                   row[titleFieldIdx] : (config[PROP_NS + 'title'] || '');
             var hasCounts  = !isNaN(numerator) && !isNaN(denominator);
-            var colors     = colorMap[threshold] || UNKNOWN_COLOR;
+            var colors     = colorMap[threshold] || built.errorColor;
             var roundedPct = Math.round(compliance);
 
             // --- Render ---
@@ -188,11 +194,9 @@ define([
             }
 
             if (threshold) {
-                var isKnown = !!colorMap[threshold];
                 var $pill = $('<span class="cbv-pill"></span>')
                     .text(threshold.toUpperCase())
-                    .toggleClass('cbv-pill-unknown', !isKnown);
-                if (isKnown) $pill.css({ color: colors.text, borderColor: colors.text });
+                    .css({ color: colors.text, borderColor: colors.text });
                 $meta.append($pill);
             }
 
