@@ -279,7 +279,7 @@ const styles = {
 ComplianceBar.config = {
     key: 'compliance_bar_viz.compliance_bar',
     name: 'Compliance Bar',
-    category: 'Comparisons',
+    category: 'Custom',
     dataContract: {
         requiredDataSources: ['primary'],
     },
