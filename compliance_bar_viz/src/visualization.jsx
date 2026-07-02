@@ -73,7 +73,7 @@ function extractRow(dataSources) {
 }
 
 function ComplianceBar(props) {
-    const { options, dataSources } = props;
+    const { options = {}, dataSources } = props;
 
     const extracted = extractRow(dataSources);
     if (!extracted) {
@@ -279,7 +279,7 @@ const styles = {
 ComplianceBar.config = {
     key: 'compliance_bar_viz.compliance_bar',
     name: 'Compliance Bar',
-    category: 'Comparisons',
+    category: 'Custom',
     dataContract: {
         requiredDataSources: ['primary'],
     },
