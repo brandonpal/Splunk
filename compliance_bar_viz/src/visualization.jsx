@@ -73,7 +73,7 @@ function extractRow(dataSources) {
 }
 
 function ComplianceBar(props) {
-    const { options, dataSources } = props;
+    const { options = {}, dataSources } = props;
 
     const extracted = extractRow(dataSources);
     if (!extracted) {
